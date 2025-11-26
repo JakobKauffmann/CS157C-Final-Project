@@ -2,7 +2,7 @@ from neo4j import GraphDatabase
 
 NEO4J_URI = "neo4j://127.0.0.1:7687"
 NEO4J_USER = "neo4j"
-NEO4J_PASSWORD = "neo4juser"
+NEO4J_PASSWORD = "neoneo21"
 DB_NAME = "socialnetworkdb"
 
 driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
