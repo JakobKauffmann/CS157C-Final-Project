@@ -43,7 +43,7 @@ def generate_graph():
 
     edges = set()
 
-    # map user → cluster
+    # map user â†’ cluster
     user_to_cluster = {}
     for cid, members in clusters.items():
         for u in members:

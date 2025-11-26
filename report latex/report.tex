@@ -1,0 +1,518 @@
+\documentclass[12pt,a4paper]{article}
+
+% ============================================================
+% Packages
+% ============================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+
+% ============================================================
+% Page Setup
+% ============================================================
+\geometry{margin=1in}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{CS157C Final Project}
+\lhead{Social Network Graph Application}
+\rfoot{Page \thepage}
+
+% ============================================================
+% Code Listing Style
+% ============================================================
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{cypherStyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    morekeywords={MATCH, RETURN, WHERE, CREATE, MERGE, DELETE, SET, WITH, ORDER, BY, LIMIT, AS, DISTINCT, NOT, AND, OR, OPTIONAL, UNWIND, count, type, SIZE}
+}
+\lstset{style=cypherStyle}
+
+% ============================================================
+% Title
+% ============================================================
+\title{
+    \vspace{-1cm}
+    \textbf{CS157C: NoSQL Database Systems}\\
+    \Large Final Project Report\\
+    \vspace{0.5cm}
+    \huge Social Network Graph Application
+}
+
+\author{
+    \textbf{Team Members}\\
+    Aditya Dawadikar \texttt{<aditya.dawadikar@sjsu.edu>}\\
+    Timothy \texttt{<timothy@sjsu.edu>}\\
+    Jakob \texttt{<jakob@sjsu.edu>}
+}
+
+\date{December 2024}
+
+% ============================================================
+% Document Start
+% ============================================================
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+\tableofcontents
+\newpage
+
+% ============================================================
+% SECTION: Team Info
+% ============================================================
+\section{Team Information}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Name} & \textbf{Email} & \textbf{Responsibilities} \\
+\midrule
+Aditya Dawadikar & aditya.dawadikar@sjsu.edu & Dataset, Schema, Search \& Explore \\
+Timothy & timothy@sjsu.edu & User Management (UC-1 to UC-4) \\
+Jakob & jakob@sjsu.edu & Social Graph Features (UC-5 to UC-9) \\
+\bottomrule
+\end{tabular}
+\caption{Team Member Information}
+\end{table}
+
+% ============================================================
+% SECTION: Property Graph Schema
+% ============================================================
+\section{Property Graph Schema}
+
+\subsection{Node: User}
+
+The \texttt{User} node represents a user in the social network.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Property} & \textbf{Type} & \textbf{Description} \\
+\midrule
+userId & STRING & Zero-padded unique ID (0001...5000) \\
+username & STRING & Generated unique username \\
+email & STRING & User email address \\
+name & STRING & Full display name \\
+bio & STRING & Short profile biography \\
+passwordHash & STRING & bcrypt hashed password \\
+\bottomrule
+\end{tabular}
+\caption{User Node Properties}
+\end{table}
+
+\subsection{Relationship: FOLLOWS}
+
+The \texttt{FOLLOWS} relationship represents a directed edge from User A to User B, indicating that User A follows User B.
+
+\begin{verbatim}
+(UserA:User)-[:FOLLOWS]->(UserB:User)
+\end{verbatim}
+
+% ============================================================
+% SECTION: Dataset Information
+% ============================================================
+\section{Dataset Information}
+
+\subsection{Dataset Source}
+\begin{itemize}
+    \item \textbf{Name:} Synthetic Social Network Dataset
+    \item \textbf{Type:} Generated using Python scripts
+    \item \textbf{Size:} 5,000 users, 15,000+ FOLLOWS relationships
+\end{itemize}
+
+\subsection{Dataset Description}
+The dataset is synthetically generated to simulate a realistic social network with:
+\begin{itemize}
+    \item \textbf{User Generation:} 5,000 unique users with randomized usernames (Adjective + Noun + Number format)
+    \item \textbf{Cluster Behavior:} Users are organized into 20 clusters for realistic community structure
+    \item \textbf{Influencers:} 20 users with 1,000-3,500 followers each
+    \item \textbf{Ghost Accounts:} 800 users with 0 followers (inactive accounts)
+    \item \textbf{Normal Users:} Follow 3-50 users, primarily within their cluster
+\end{itemize}
+
+\subsection{Data Processing and Loading}
+
+The data was generated and loaded using the following Python scripts:
+
+\begin{enumerate}
+    \item \texttt{generate\_users.py} - Creates 5,000 unique user records
+    \item \texttt{generate\_graph.py} - Creates FOLLOWS relationships with realistic patterns
+    \item \texttt{ingest\_graph.py} - Loads CSV data into Neo4j
+\end{enumerate}
+
+\subsection{Cypher Statements for Data Creation}
+
+\textbf{Create Constraints:}
+\begin{lstlisting}
+CREATE CONSTRAINT user_id_unique IF NOT EXISTS
+FOR (u:User) REQUIRE u.userId IS UNIQUE;
+
+CREATE CONSTRAINT username_unique IF NOT EXISTS
+FOR (u:User) REQUIRE u.username IS UNIQUE;
+\end{lstlisting}
+
+\textbf{Load Users:}
+\begin{lstlisting}
+UNWIND $rows AS row
+MERGE (u:User {userId: row.userId})
+SET u.username = row.username,
+    u.email = row.email,
+    u.name = row.name,
+    u.bio = row.bio,
+    u.passwordHash = row.passwordHash;
+\end{lstlisting}
+
+\textbf{Load FOLLOWS Relationships:}
+\begin{lstlisting}
+UNWIND $rows AS row
+MATCH (f:User {userId: row.followerId})
+MATCH (t:User {userId: row.followeeId})
+MERGE (f)-[:FOLLOWS]->(t);
+\end{lstlisting}
+
+% ============================================================
+% SECTION: Use Case Evidence
+% ============================================================
+\section{Use Case Evidence}
+
+% ------------------------------------------------------------
+% UC-1 through UC-4 (Timothy's sections - placeholder)
+% ------------------------------------------------------------
+\subsection{UC-1: User Registration}
+\textit{[Timothy's implementation]}
+
+\textbf{Screenshot:}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/uc1_user_registration.png}
+    \caption{UC-1: User Registration}
+    \label{fig:uc1}
+\end{figure}
+
+\subsection{UC-2: User Login}
+\textit{[Timothy's implementation]}
+
+\textbf{Screenshot:}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/uc2_user_login.png}
+    \caption{UC-2: User Login}
+    \label{fig:uc2}
+\end{figure}
+
+\subsection{UC-3: View Profile}
+\textit{[Timothy's implementation]}
+
+\textbf{Screenshot:}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/uc3_view_profile.png}
+    \caption{UC-3: View Profile}
+    \label{fig:uc3}
+\end{figure}
+
+\subsection{UC-4: Edit Profile}
+\textit{[Timothy's implementation]}
+
+\textbf{Screenshot:}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/uc4_edit_profile.png}
+    \caption{UC-4: Edit Profile}
+    \label{fig:uc4}
+\end{figure}
+
+% ------------------------------------------------------------
+% UC-5: Follow Another User (Jakob)
+% ------------------------------------------------------------
+\subsection{UC-5: Follow Another User}
+
+\textbf{Description:} A user can follow another user, creating a \texttt{FOLLOWS} relationship in Neo4j. The relationship is stored as a directed edge in the graph database, representing a one-way connection from the follower to the user being followed.
+
+\textbf{Cypher Query:}
+\begin{lstlisting}
+// UC-5: Follow Another User
+// Creates a FOLLOWS relationship between two users
+
+MATCH (follower:User {userId: $followerId})
+MATCH (target:User {userId: $targetId})
+MERGE (follower)-[r:FOLLOWS]->(target)
+RETURN 
+    follower.userId AS followerId,
+    follower.username AS followerUsername,
+    target.userId AS targetId,
+    target.username AS targetUsername,
+    type(r) AS relationship
+\end{lstlisting}
+
+\textbf{Implementation Notes:}
+\begin{itemize}
+    \item Uses \texttt{MERGE} to prevent duplicate relationships
+    \item Validates that a user cannot follow themselves
+    \item Checks if relationship already exists before creating
+    \item Returns confirmation of the created relationship
+\end{itemize}
+
+\textbf{Screenshot:}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/uc5_follow_user.png}
+    \caption{UC-5: Follow Another User - Creating a FOLLOWS relationship}
+    \label{fig:uc5}
+\end{figure}
+
+% ------------------------------------------------------------
+% UC-6: Unfollow a User (Jakob)
+% ------------------------------------------------------------
+\subsection{UC-6: Unfollow a User}
+
+\textbf{Description:} A user can unfollow another user, removing the \texttt{FOLLOWS} relationship from the graph database. This operation deletes the directed edge between the two users.
+
+\textbf{Cypher Query:}
+\begin{lstlisting}
+// UC-6: Unfollow a User
+// Removes the FOLLOWS relationship between two users
+
+MATCH (follower:User {userId: $followerId})
+      -[r:FOLLOWS]->
+      (target:User {userId: $targetId})
+DELETE r
+RETURN 
+    follower.userId AS followerId,
+    follower.username AS followerUsername,
+    target.userId AS targetId,
+    target.username AS targetUsername,
+    'DELETED' AS status
+\end{lstlisting}
+
+\textbf{Implementation Notes:}
+\begin{itemize}
+    \item Uses pattern matching to find the exact relationship
+    \item Validates relationship exists before deletion
+    \item Only deletes the specific \texttt{FOLLOWS} edge, not the nodes
+    \item Provides feedback on successful deletion
+\end{itemize}
+
+\textbf{Screenshot:}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/uc6_unfollow_user.png}
+    \caption{UC-6: Unfollow a User - Removing a FOLLOWS relationship}
+    \label{fig:uc6}
+\end{figure}
+
+% ------------------------------------------------------------
+% UC-7: View Friends/Connections (Jakob)
+% ------------------------------------------------------------
+\subsection{UC-7: View Friends/Connections}
+
+\textbf{Description:} A user can see a list of people they are following (outgoing \texttt{FOLLOWS} relationships) and who follow them (incoming \texttt{FOLLOWS} relationships). This provides a complete view of a user's social connections.
+
+\textbf{Cypher Query - View Followers:}
+\begin{lstlisting}
+// UC-7: View Followers
+// Returns all users who follow the selected user
+
+MATCH (u:User {userId: $userId})<-[:FOLLOWS]-(f:User)
+RETURN 
+    f.userId AS id,
+    f.username AS username,
+    f.name AS name,
+    f.bio AS bio
+ORDER BY f.username
+LIMIT 100
+\end{lstlisting}
+
+\textbf{Cypher Query - View Following:}
+\begin{lstlisting}
+// UC-7: View Following
+// Returns all users that the selected user follows
+
+MATCH (u:User {userId: $userId})-[:FOLLOWS]->(t:User)
+RETURN 
+    t.userId AS id,
+    t.username AS username,
+    t.name AS name,
+    t.bio AS bio
+ORDER BY t.username
+LIMIT 100
+\end{lstlisting}
+
+\textbf{Implementation Notes:}
+\begin{itemize}
+    \item Separates followers and following into distinct queries for clarity
+    \item Uses directional relationship patterns (\texttt{<-[:FOLLOWS]-} vs \texttt{-[:FOLLOWS]->})
+    \item Includes user details (name, bio) for display
+    \item Limited to 100 results for performance
+\end{itemize}
+
+\textbf{Screenshots:}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/uc7_view_followers.png}
+    \caption{UC-7: View Followers - Users who follow the selected user}
+    \label{fig:uc7_followers}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/uc7_view_following.png}
+    \caption{UC-7: View Following - Users the selected user follows}
+    \label{fig:uc7_following}
+\end{figure}
+
+% ------------------------------------------------------------
+% UC-8: Mutual Connections (Jakob)
+% ------------------------------------------------------------
+\subsection{UC-8: Mutual Connections}
+
+\textbf{Description:} A user can see mutual friends---users who are followed by both User A and User B. This feature demonstrates Neo4j's pattern matching capability to find intersection patterns in the graph.
+
+\textbf{Cypher Query:}
+\begin{lstlisting}
+// UC-8: Mutual Connections
+// Finds users that BOTH User A and User B follow
+// Uses graph pattern matching to find intersection
+
+MATCH (a:User {userId: $userAId})
+      -[:FOLLOWS]->
+      (mutual:User)
+      <-[:FOLLOWS]-
+      (b:User {userId: $userBId})
+WHERE a <> b
+RETURN DISTINCT
+    mutual.userId AS id,
+    mutual.username AS username,
+    mutual.name AS name,
+    mutual.bio AS bio
+ORDER BY mutual.username
+LIMIT 50
+\end{lstlisting}
+
+\textbf{Implementation Notes:}
+\begin{itemize}
+    \item Uses a single pattern to match both relationships simultaneously
+    \item The pattern \texttt{(a)-[:FOLLOWS]->(mutual)<-[:FOLLOWS]-(b)} finds users followed by both A and B
+    \item \texttt{WHERE a <> b} ensures we're comparing two different users
+    \item \texttt{DISTINCT} prevents duplicate results
+    \item Efficient graph traversal compared to SQL JOIN operations
+\end{itemize}
+
+\textbf{Screenshot:}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/uc8_mutual_connections.png}
+    \caption{UC-8: Mutual Connections - Users followed by both User A and User B}
+    \label{fig:uc8}
+\end{figure}
+
+% ------------------------------------------------------------
+% UC-9: Friend Recommendations (Jakob)
+% ------------------------------------------------------------
+\subsection{UC-9: Friend Recommendations}
+
+\textbf{Description:} The system suggests new people to follow based on common connections using graph traversal queries. This implements a ``friends-of-friends'' algorithm that recommends users followed by people you follow, but whom you don't follow yet.
+
+\textbf{Cypher Query:}
+\begin{lstlisting}
+// UC-9: Friend Recommendations
+// Uses 2-hop graph traversal to find friends-of-friends
+// Excludes users already followed and the user themselves
+// Ranks by number of mutual connections
+
+MATCH (u:User {userId: $userId})
+      -[:FOLLOWS]->(friend)
+      -[:FOLLOWS]->(recommended)
+WHERE NOT (u)-[:FOLLOWS]->(recommended)
+  AND u <> recommended
+WITH recommended, count(DISTINCT friend) AS mutualCount
+RETURN 
+    recommended.userId AS id,
+    recommended.username AS username,
+    recommended.name AS name,
+    recommended.bio AS bio,
+    mutualCount
+ORDER BY mutualCount DESC, recommended.username
+LIMIT $limit
+\end{lstlisting}
+
+\textbf{Implementation Notes:}
+\begin{itemize}
+    \item \textbf{2-hop traversal:} The pattern finds users two steps away in the graph
+    \item \textbf{Exclusion filter:} Ensures we don't recommend users already followed
+    \item \textbf{Self-exclusion:} Prevents recommending the user to themselves
+    \item \textbf{Ranking:} Results are ordered by \texttt{mutualCount}, giving priority to stronger recommendations
+    \item \textbf{Aggregation:} Uses \texttt{count(DISTINCT friend)} to count mutual connections
+    \item This query demonstrates the power of graph databases for social network analytics
+\end{itemize}
+
+\textbf{Screenshot:}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/uc9_friend_recommendations.png}
+    \caption{UC-9: Friend Recommendations - Suggested users based on mutual connections}
+    \label{fig:uc9}
+\end{figure}
+
+% ------------------------------------------------------------
+% UC-10 and UC-11 (Aditya's sections - placeholder)
+% ------------------------------------------------------------
+\subsection{UC-10: Search Users}
+\textit{[Aditya's implementation]}
+
+\textbf{Screenshot:}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/uc10_search_users.png}
+    \caption{UC-10: Search Users}
+    \label{fig:uc10}
+\end{figure}
+
+\subsection{UC-11: Explore Popular Users}
+\textit{[Aditya's implementation]}
+
+\textbf{Screenshot:}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/uc11_popular_users.png}
+    \caption{UC-11: Explore Popular Users}
+    \label{fig:uc11}
+\end{figure}
+
+% ============================================================
+% END
+% ============================================================
+\end{document}
