@@ -1,0 +1,21 @@
+\contentsline {section}{\numberline {1}Team Information}{3}{section.1}%
+\contentsline {section}{\numberline {2}Property Graph Schema}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Node: User}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Relationship: FOLLOWS}{3}{subsection.2.2}%
+\contentsline {section}{\numberline {3}Dataset Information}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Dataset Source}{3}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Dataset Description}{3}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Data Processing and Loading}{4}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Cypher Statements for Data Creation}{4}{subsection.3.4}%
+\contentsline {section}{\numberline {4}Use Case Evidence}{5}{section.4}%
+\contentsline {subsection}{\numberline {4.1}UC-1: User Registration}{5}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}UC-2: User Login}{5}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}UC-3: View Profile}{6}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}UC-4: Edit Profile}{7}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}UC-5: Follow Another User}{8}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}UC-6: Unfollow a User}{9}{subsection.4.6}%
+\contentsline {subsection}{\numberline {4.7}UC-7: View Friends/Connections}{11}{subsection.4.7}%
+\contentsline {subsection}{\numberline {4.8}UC-8: Mutual Connections}{14}{subsection.4.8}%
+\contentsline {subsection}{\numberline {4.9}UC-9: Friend Recommendations}{16}{subsection.4.9}%
+\contentsline {subsection}{\numberline {4.10}UC-10: Search Users}{17}{subsection.4.10}%
+\contentsline {subsection}{\numberline {4.11}UC-11: Explore Popular Users}{18}{subsection.4.11}%
