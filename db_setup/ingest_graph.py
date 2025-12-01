@@ -6,7 +6,7 @@ from neo4j import GraphDatabase
 # ============================================================
 NEO4J_URI = "neo4j://127.0.0.1:7687"      # change if needed
 NEO4J_USER = "neo4j"
-NEO4J_PASSWORD = "neoneo21"              # change to your actual password
+NEO4J_PASSWORD = "neo4juser"              # change to your actual password
 DB_NAME = "socialnetworkdb"
 
 USERS_CSV = "users.csv"
